@@ -1,7 +1,11 @@
 @MeadowMotz
+
 Pronouns: They/Them
+
 Status: Full-time Student at the University of Dayton
+
 Major: Computer Science
+
 Email: motzb1@udayton.edu
 
 <!---
