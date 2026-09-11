@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Reverse Image Search</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .form-container {
+            margin-top: 2%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            width: 80%;
+            flex-wrap: wrap;
+        }
+        #preview {
+            margin-top: 10px;
+            max-width: 100%;
+            max-height: 50%;
+            display: none;
+        }
+        #submit-button {
+             margin-top: 20px;
+             height: 30px;
+        }
+        #results-container {
+            margin-top: 30px;
+            padding: 10px;
+            width: 80%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+        }
+        .result-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            font-size: 0.8em;
+        }
+        .result-item img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover, .close:focus { color: black; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Food Reverse Image Search</h1>
+
+    <div class="form-container">
+        <input type="file" id="file-input" name="file" accept="image/*"/>
+        <img id="preview" src="#" alt="Image preview"/>
+        <button id="submit-button" type="button">Search</button>
+    </div>
+
+    <h2>Search Results</h2>
+    <!-- Default msg. changed by JS -->
+    <div id="results-container">
+        <p>Upload an image and click Search to see results.</p>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const preview = document.getElementById('preview');
+        const submitButton = document.getElementById('submit-button');
+        const resultsContainer = document.getElementById('results-container');
+
+        // File upload handling
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                alert('Please select an image file.');
+                preview.style.display = 'none';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Submit button handling (search)
+        submitButton.addEventListener("click", function(event) {
+            event.preventDefault();
+
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select an image file first.");
+                return;
+            }
+
+            resultsContainer.innerHTML = '<p>Searching...</p>';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/search', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.detail || `HTTP error! status: ${response.status}`); 
+                    }).catch(() => {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultsContainer.innerHTML = '';
+
+                // Display search results
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(result => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.classList.add('result-item');
+
+                        const imgElement = document.createElement('img');
+                        imgElement.src = result.url;  // This is where the image URL is set
+                        imgElement.alt = `Result image with score ${result.score}`;
+
+                        const scoreElement = document.createElement('div');
+                        scoreElement.textContent = `Score: ${result.score}`;
+
+                        itemDiv.appendChild(imgElement);
+                        itemDiv.appendChild(scoreElement);
+                        resultsContainer.appendChild(itemDiv);
+                    });
+                } else {
+                    resultsContainer.innerHTML = '<p>No results found.</p>';
+                }
+            })
+            .catch(error => {
+                resultsContainer.innerHTML = `<p>Error: ${error.message}</p>`;
+            });
+        });
+    </script>
+</body>
+</html>
